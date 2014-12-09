@@ -1,0 +1,32 @@
+
+        <div class="bottom">
+            <div class="uts">Use The Schwartz</div>
+        </div>
+
+        <script src="{{ theme_url }}/js/vendor/jquery.js"></script>
+        <script src="{{ theme_url }}/js/foundation.min.js"></script>
+        <!-- <script src="{{ theme_url }}/js/foundation/foundation.dropdown.js"></script> -->
+        <script>
+            $(document).foundation({
+                dropdown: {
+                    active_class: 'open'
+                }
+            });
+
+$(window).scroll(function() {
+    var scroll = $(window).scrollTop();
+    var hasClass = $('body').hasClass('stuck');
+
+    if (scroll > 250 && !hasClass) {
+        $('body').addClass('stuck');
+        return;
+    }
+
+    if (scroll < 250 && hasClass) {
+        $('body').removeClass('stuck');
+        return;
+    }
+
+    // console.log(scroll);
+});
+        </script>

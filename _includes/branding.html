@@ -1,0 +1,39 @@
+            <div class="row">
+                <div class="columns large-12 branding">
+                    <a href="{{ site.url }}">{{ site.title }}</a>
+                    {% if page.title %}
+                    <div class="title">- {{ page.title }}</div>
+                    {% endif %}
+
+                    {% if page.is_front_page != true %}
+                    <ul class="main-navigation">
+                        {% if page.previous.url %}
+                        <li class="previous"><a href="{{ page.previous.url }}" title="Older">Older</a></li>
+                        {% else %}
+                        <li class="previous stuck">Older</li>
+                        {% endif %}
+
+                        <li class="separator">/</li>
+
+                        {% if page.next.url %}
+                        <li class="next"><a href="{{ page.next.url }}" title="Newer">Newer</a></li>
+                        {% else %}
+                        <li class="next stuck">Newer</li>
+                        {% endif %}
+                    </ul>
+
+                    {% if page.date %}
+                    <div class="date">
+                        {{ page.date | date_to_string }}
+                    </div>
+                    {% endif %}
+
+                    {% if page.tags %}
+                    <div class="tags show-for-medium-up">
+                        {{ page.tags }}
+                    </div>
+                    {% endif %}
+
+                    {% endif %}
+                </div>
+            </div>

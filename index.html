@@ -1,0 +1,13 @@
+---
+layout: default
+is_front_page: true
+---
+
+        <div class="row">
+            {% for post in site.posts %}
+            <div class="columns small-10 small-offset-1 medium-4 medium-offset-0 large-3 left post-excerpt">
+                <h4><a href="{{ post.url }}">{{ post.title }}</a></h4>
+                {{ post.content | strip_html | truncatewords:50 }} <a href="{{ post.url }}">more</a>
+            </div>
+            {% endfor %}
+        </div>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Man, Do I Dislike Gentoo | Use The Schwartz</title>
+    <meta name="description" content="I’ve had a little bit of experience with Gentoo in my past, and recent. In the past, I didn’t possess the “System Administrator” skills I have now. I put “Sy...">
+
+    <link rel="stylesheet" href="/css/foundation.min.css" />
+    <link rel="stylesheet" href="/css/uts.css" />
+    <link rel="stylesheet" href='http://fonts.googleapis.com/css?family=Lato:300,700' type='text/css'>
+    <link rel="stylesheet" href='http://fonts.googleapis.com/css?family=Josefin+Slab:700' type='text/css'>
+    <script src="/js/vendor/modernizr.js"></script>
+</head>
+
+
+  <body>
+
+            <div role="header">
+                        <div class="row">
+                <div class="columns large-12 branding">
+                    <a href="http://www.usetheschwartz.com">Use The Schwartz</a>
+                    
+                    <div class="title">- Man, Do I Dislike Gentoo</div>
+                    
+
+                    
+                    <ul class="main-navigation">
+                        
+                        <li class="previous"><a href="/2014/05/28/the-difference-fourty-minutes-make.html" title="Older">Older</a></li>
+                        
+
+                        <li class="separator">/</li>
+
+                        
+                        <li class="next"><a href="/2014/06/02/potential-inadvertent-agreements.html" title="Newer">Newer</a></li>
+                        
+                    </ul>
+
+                    
+                    <div class="date">
+                        29 May 2014
+                    </div>
+                    
+
+                    
+                    <div class="tags show-for-medium-up">
+                        Geek,OS,PurePain,PHP
+                    </div>
+                    
+
+                    
+                </div>
+            </div>
+
+        </div>
+        <div role="header-mini">
+                        <div class="row">
+                <div class="columns large-12 branding">
+                    <a href="http://www.usetheschwartz.com">Use The Schwartz</a>
+                    
+                    <div class="title">- Man, Do I Dislike Gentoo</div>
+                    
+
+                    
+                    <ul class="main-navigation">
+                        
+                        <li class="previous"><a href="/2014/05/28/the-difference-fourty-minutes-make.html" title="Older">Older</a></li>
+                        
+
+                        <li class="separator">/</li>
+
+                        
+                        <li class="next"><a href="/2014/06/02/potential-inadvertent-agreements.html" title="Newer">Newer</a></li>
+                        
+                    </ul>
+
+                    
+                    <div class="date">
+                        29 May 2014
+                    </div>
+                    
+
+                    
+                    <div class="tags show-for-medium-up">
+                        Geek,OS,PurePain,PHP
+                    </div>
+                    
+
+                    
+                </div>
+            </div>
+
+        </div>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+                <div class="row">
+            <div class="columns large-12 content">
+                <h1>Man, Do I Dislike Gentoo</h1>
+                <p>I’ve had a little bit of experience with Gentoo in my past, and recent. In the past, I didn’t possess the “System Administrator” skills I have now. I put “System Administrator” in quotes, because I wouldn’t call myself that to any actual System Administrator. I know enough and have a few tricks up my sleve to fairly quickly get me through my day. I digress… When I was dealing with this <em>lovely</em> operating system when I wasn’t so long in the tooth, I wasn’t doing too much. So I didn’t realize how painful it was.</p>
+
+<p>I’ve been running into an issue with it in the past few days that is making my thoughts boil. I’m trying to migrate an old application, that is using CodeIgniter as it’s framework. For anyone in the know, this is a PHP 5.2 problem. Anything above 5.2, you’re going to have a bad time. By migrate, I mean moving from one machine to another. I’m not migrating from 5.2 to 5.4.</p>
+
+<p>Package management is generally meant to make your life easier when it comes to dependencies and installing software on a command-line based operating system. The main take-away from this adventure is:</p>
+
+<h4 id="emerge-is-my-bane"><code>emerge</code> is my bane.</h4>
+
+<p>I swear it was close to a half hour to install Apache and PHP together in one fell swoop. The screen looked like a computer does in an episode of CSI: New York when the “hacker” is trying to break into the Gibson. Just FILLED with text scrolling by, varying by only the last 30-ish characters while the four lines above it were identical to the command previously spit out by <code>make</code>.</p>
+
+<p>Anyway, I don’t have any clever anecdote or Chuck Palahniuk way of bringing the story around from the beginning, I just wanted to share the disdane with (hopefully) you. You’re welcome.</p>
+
+            </div>
+        </div>
+
+      </div>
+    </div>
+
+    
+        <div class="bottom">
+            <div class="uts">Use The Schwartz</div>
+        </div>
+
+        <script src="/js/vendor/jquery.js"></script>
+        <script src="/js/foundation.min.js"></script>
+        <!-- <script src="/js/foundation/foundation.dropdown.js"></script> -->
+        <script>
+            $(document).foundation({
+                dropdown: {
+                    active_class: 'open'
+                }
+            });
+
+$(window).scroll(function() {
+    var scroll = $(window).scrollTop();
+    var hasClass = $('body').hasClass('stuck');
+
+    if (scroll > 250 && !hasClass) {
+        $('body').addClass('stuck');
+        return;
+    }
+
+    if (scroll < 250 && hasClass) {
+        $('body').removeClass('stuck');
+        return;
+    }
+
+    // console.log(scroll);
+});
+        </script>
+
+
+  </body>
+
+</html>

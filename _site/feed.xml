@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Use The Schwartz</title>
+    <description>Never underestimate the power of the Schwartz!</description>
+    <link>http://www.usetheschwartz.com/</link>
+    <atom:link href="http://www.usetheschwartz.com/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Tue, 09 Dec 2014 10:09:28 -0500</pubDate>
+    <lastBuildDate>Tue, 09 Dec 2014 10:09:28 -0500</lastBuildDate>
+    <generator>Jekyll v2.5.1</generator>
+    
+      <item>
+        <title>Easy SSH Key Forwarding</title>
+        <description>&lt;p&gt;I’ve got a need to be able to ship my SSH key from my laptop onto the host that I’m connecting to. This in and of itself is not a monumental task, but it of course can be easy and painless.&lt;/p&gt;
+
+&lt;h3 id=&quot;assumption&quot;&gt;Assumption&lt;/h3&gt;
+
+&lt;p&gt;I currently work on a Macbook Pro, so these instructions are specific to that machine. However, this is all in the realm of general SSH config and bash profile hackery. Of course, you need to have SSH installed on your machine also, but that should be a given at this point.&lt;/p&gt;
+
+&lt;h3 id=&quot;the-skinny&quot;&gt;The Skinny&lt;/h3&gt;
+
+&lt;p&gt;First thing is first, we need to make sure that your SSH Forwarding Agent is turned on. By default, it’s turned off, you’re going to have to modify your &lt;code&gt;/etc/ssh_config&lt;/code&gt; to enable it:&lt;/p&gt;
+
+&lt;pre class=&quot;code&quot;&gt;
+#   EnableSSHKeysign no
+#   EscapeChar ~
+#   ExitOnForwardFailure no
+   ForwardAgent yes
+#   ForwardX11 no
+#   ForwardX11Timeout 1200
+#   ForwardX11Trusted no
+&lt;/pre&gt;
+
+&lt;p&gt;Now, we’re going to add some helper into your &lt;code&gt;.profile&lt;/code&gt; (substitute this with .bashrc or whatever get’s launched with every terminal on your machine - if you really don’t know what you’re looking for… whatever exports your $PATH).&lt;/p&gt;
+
+&lt;p&gt;Here is the full content of what we’re adding, we’ll discuss below:&lt;/p&gt;
+
+&lt;pre class=&quot;code&quot;&gt;
+# SSH-Agent
+agent_test=`/bin/ps -ef | /usr/bin/grep [s]sh-agent | /usr/bin/awk &#39;{print $2}&#39; | xargs`
+
+if [ &quot;$agent_test&quot; = &quot;&quot; ]; then
+    # there is no agent running
+    if [ -e &quot;$HOME/agent.sh&quot; ]; then
+        # remove the old file
+        /bin/rm -f $HOME/agent.sh
+    fi;
+    # start a new agent
+    /usr/bin/ssh-agent | /usr/bin/grep -v echo &amp;gt;&amp;amp;$HOME/agent.sh
+fi;
+
+test -e $HOME/agent.sh &amp;amp;&amp;amp; source $HOME/agent.sh
+test -e $HOME/agent.sh &amp;amp;&amp;amp; ssh-add ~/.ssh/id_rsa 2&amp;gt;/dev/null
+
+alias kagent=&quot;kill -9 $SSH_AGENT_PID&quot;
+# SSH-Agent End
+&lt;/pre&gt;
+
+&lt;h5 id=&quot;the-test&quot;&gt;The Test&lt;/h5&gt;
+
+&lt;pre class=&quot;code&quot;&gt;
+agent_test=`/bin/ps -ef | /usr/bin/grep [s]sh-agent | /usr/bin/awk &#39;{print $2}&#39; | xargs`
+&lt;/pre&gt;
+
+&lt;p&gt;This is checking to see if the ssh-agent is already running. We do this because we don’t want to start an agent with every terminal you open up. This would make problems for already open sessions. We’re simply looking at the running processes, grep’ing for ssh-agent (wrapping []’s around the first letter of the pattern will keep the instance of grep out of the results). We’ll use the value of $agent_test below to determine if we should start a new agent, or use an existing one.&lt;/p&gt;
+
+&lt;h5 id=&quot;some-cleanup&quot;&gt;Some Cleanup&lt;/h5&gt;
+
+&lt;pre class=&quot;code&quot;&gt;
+if [ -e &quot;$HOME/agent.sh&quot; ]; then
+    # remove the old file
+    /bin/rm -f $HOME/agent.sh
+fi;
+&lt;/pre&gt;
+
+&lt;p&gt;Check to see if there is an existing &lt;code&gt;agent.sh&lt;/code&gt; in your $HOME directory. The contents of this file come from the step after, but the spoiler, is that ssh-agent spits out some environment variables that you need to export to make the magic happen. We forward the output (from when we actually start the agent) into this file, so that any new terminal can use those variables… re-using the agent and any keys loaded into it. Remember, we’re in this block if the $agent_test value is empty, which means that there isn’t currently an agent running, we want to clean up any environment variables from a previous agent, they’re useless to us right now.&lt;/p&gt;
+
+&lt;h5 id=&quot;start-a-new-agent&quot;&gt;Start A New Agent&lt;/h5&gt;
+
+&lt;pre class=&quot;code&quot;&gt;
+/usr/bin/ssh-agent | /usr/bin/grep -v echo &amp;gt;&amp;amp;$HOME/agent.sh
+&lt;/pre&gt;
+
+&lt;p&gt;Start a new SSH Agent. The output of the command is forwareded into the previously mentioned &lt;code&gt;agent.sh&lt;/code&gt; for re-use. The output looks like:&lt;/p&gt;
+
+&lt;pre class=&quot;code&quot;&gt;
+# ssh-agent
+SSH_AUTH_SOCK=/var/folders/1r/q94mt1gn1cjgpgkbwbdnrfbr0000gp/T//ssh-5zhpoq6QqJQj/agent.79033; export SSH_AUTH_SOCK;
+SSH_AGENT_PID=79034; export SSH_AGENT_PID;
+echo Agent pid 79034;
+&lt;/pre&gt;
+
+&lt;p&gt;We grep out the last line, beacuse it’s garbage for what we’re doing. Now you have your SSH Agent running, with forwarding enabled in the config. The next line is what makes all of this re-usable between terminals:&lt;/p&gt;
+
+&lt;pre class=&quot;code&quot;&gt;
+test -e $HOME/agent.sh &amp;amp;&amp;amp; source $HOME/agent.sh
+&lt;/pre&gt;
+
+&lt;p&gt;We check to see if the &lt;code&gt;agent.sh&lt;/code&gt; file exists, and if it does, we source it. This will re-use the currently running SSH Agent’s pid.&lt;/p&gt;
+
+&lt;h5 id=&quot;adding-keys&quot;&gt;Adding Keys&lt;/h5&gt;
+
+&lt;p&gt;The last thing we want to do is add your key to the agent automatically. This will put in your default key always, if you have other keys on your machine, you’ll either modify your &lt;code&gt;.profile&lt;/code&gt; to include those as well, or add them ad hoc as you see fit.&lt;/p&gt;
+
+&lt;pre class=&quot;code&quot;&gt;
+test -e $HOME/agent.sh &amp;amp;&amp;amp; ssh-add ~/.ssh/id_rsa 2&amp;gt;/dev/null
+&lt;/pre&gt;
+
+&lt;p&gt;Again, we check for the existence of &lt;code&gt;agent.sh&lt;/code&gt; before we add the key, no point in doing it if the agent isn’t running. We’re piping errors to &lt;code&gt;/dev/null&lt;/code&gt; because the output from &lt;code&gt;ssh-add&lt;/code&gt; is on STDERR. All it’s telling us is that the key was added. &lt;/p&gt;
+
+&lt;p&gt;You can always see what has been added in by running &lt;code&gt;ssh-add -l&lt;/code&gt; (for list…).&lt;/p&gt;
+
+&lt;h5 id=&quot;utility&quot;&gt;Utility&lt;/h5&gt;
+
+&lt;pre class=&quot;code&quot;&gt;
+alias kagent=&quot;kill -9 $SSH_AGENT_PID&quot;
+&lt;/pre&gt;
+
+&lt;p&gt;All this does is make an easy alias to kill the agent that is running. The &lt;code&gt;$SSH_AGENT_PID&lt;/code&gt; is available when the agent is started the first time, and subsequently when &lt;code&gt;agent.sh&lt;/code&gt; is sourced… so it’s always available.&lt;/p&gt;
+
+&lt;h3 id=&quot;the-end&quot;&gt;The End&lt;/h3&gt;
+
+&lt;p&gt;After all this, each time you open up a terminal on your machine, an ssh agent will either be started or resumed and your default key will be added. Any host you connect to will now receive your key and all you did was &lt;code&gt;cmd-t&lt;/code&gt; (right?).&lt;/p&gt;
+</description>
+        <pubDate>Wed, 03 Dec 2014 00:00:00 -0500</pubDate>
+        <link>http://www.usetheschwartz.com/2014/12/03/easy-ssh-key-forwarding.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/12/03/easy-ssh-key-forwarding.html</guid>
+        
+        <category>Nerd,</category>
+        
+        <category>SSH,</category>
+        
+        <category>Forward-Awesome</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Using preg_match With A switch()</title>
+        <description>&lt;p&gt;Recently at work, there came a need to be able to ues a regular expression to match values being used in a switch() statement.&lt;/p&gt;
+
+&lt;p&gt;The nature of the switch() was looping through an array of fields and populating a variable that would be used in a template. This is all fine for fields that are statically defined… ie: their name wouldn’t ever change and would mean the same thing always and forever. The new need came about, by requiring that information be passed through somehow and the value of the variable is altered, depending on what ‘meta’ information is contained in the name.&lt;/p&gt;
+
+&lt;p&gt;To give it a bit more context for better understanding: said field was being populated with an image, but we needed to provide the dimensions to maintain the aspect ratio, while resizing the image to a supplied size. The field’s ‘meta’ then, contains the dimension to set statically (say, width) and the size of that dimension. This would mean that the other dimension (height…) would be calculated, based on the original size of the image and the defined size of the dimension.&lt;/p&gt;
+
+&lt;h4 id=&quot;the-setup-fields&quot;&gt;The Setup: $fields&lt;/h4&gt;
+&lt;pre class=&quot;code&quot;&gt;
+$fields = array(
+    &#39;name&#39;,
+    &#39;email&#39;,
+    &#39;image_aspect_width_300&#39;,
+)
+&lt;/pre&gt;
+
+&lt;h4 id=&quot;implementation-switch&quot;&gt;Implementation: switch()&lt;/h4&gt;
+&lt;pre class=&quot;code&quot;&gt;
+foreach ($fields as $field) {
+    switchch ($field) {
+        case &#39;name&#39;:
+            $value = &#39;Billy Parsons&#39;;
+            break;
+        case &#39;email&#39;:
+            $value = &#39;billy@parsons.com&#39;;
+            break;
+        case (preg_match(&#39;/^image_aspect_(width|height)_(\d+)$/&#39;, $field, $dimensions) ? $field : !$field):
+            // calculate NEW dimensions based on what was populated in $dimensions from preg_match
+            break;
+    }
+}
+&lt;/pre&gt;
+
+&lt;h4 id=&quot;the-breakdown&quot;&gt;The Breakdown&lt;/h4&gt;
+&lt;p&gt;The basics of what is happening, is we’re using a ternary operator to put either the value of &lt;code&gt;$field&lt;/code&gt; into the case, or &lt;code&gt;false&lt;/code&gt;. This means that if the regular expression supplied to &lt;code&gt;preg_match&lt;/code&gt; is found, the case will be comparing ‘image_aspect_width_300’ to ‘image_aspect_width_300’ and end up calculating the dimensions. If the expression does not match, ‘image_aspect_width_300’ compares to false and will not calculate the dimensions.&lt;/p&gt;
+
+&lt;p&gt;We’re also supplying &lt;code&gt;$dimensions&lt;/code&gt; to &lt;code&gt;preg_match&lt;/code&gt;, because we have elements in parenthesis in the regular expression… we want to use these items in our calculation. This is the ‘meta’ that we’re passing through to the processing. If designers need to create a new photo size, while still maintaining the aspect ratio of the image (why wouldn’t you want to do that anyway?), they simply need to supply a new field name to the process. The only constraint, is that the field name begins with ‘photo_aspect_’ and contains either ‘width’ or ‘height’ next, followed by a number. Of course there are separators using an underscore, but that should go without saying.&lt;/p&gt;
+
+&lt;p&gt;The thing to keep in mind however, is performance. This entirely depends on your implementation, so if you’re looping through tonnes of &lt;code&gt;$fields&lt;/code&gt; and have oodles of &lt;code&gt;preg_match&lt;/code&gt;‘es in there, you might want rethink your process. Otherwise, this can be a handy trick.&lt;/p&gt;
+</description>
+        <pubDate>Fri, 25 Jul 2014 00:00:00 -0400</pubDate>
+        <link>http://www.usetheschwartz.com/2014/07/25/using-preg_match-with-switch.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/07/25/using-preg_match-with-switch.html</guid>
+        
+        <category>Nerd,</category>
+        
+        <category>php,</category>
+        
+        <category>tips</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Fortunately</title>
+        <description>&lt;p&gt;&lt;strong&gt;ME&lt;/strong&gt;: Alright, we crossed the road.&lt;br /&gt;
+&lt;strong&gt;HADLEY&lt;/strong&gt;: Fortunately there were no cars coming…&lt;/p&gt;
+
+&lt;p&gt;She’ll be three in a month.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 24 Jul 2014 00:00:00 -0400</pubDate>
+        <link>http://www.usetheschwartz.com/2014/07/24/fortunately.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/07/24/fortunately.html</guid>
+        
+        <category>Hadleyism</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Realizations While Biking</title>
+        <description>&lt;h4 id=&quot;item-the-first&quot;&gt;Item the first…&lt;/h4&gt;
+
+&lt;p&gt;There is a lot of hoopla between cyclists and motorists on the road. Cyclits complain about bad drivers and vice versa also happens to be true. Anyone who doesn’t agree that there are guilty parties on both sides of the coin are either asleep or unwilling to accept fact.&lt;/p&gt;
+
+&lt;p&gt;What I’ve come to realize though, is that the people who are complaining about the other parties, generally don’t do the other activity. By that I mean, drivers who are angry at bikers, because they’re taking up space on the road, probably don’t commute using a bicycle. And bikers who flip the finger to drivers non-stop, probably don’t drive that much.&lt;/p&gt;
+
+&lt;h4 id=&quot;item-the-second&quot;&gt;Item the second…&lt;/h4&gt;
+
+&lt;p&gt;Biking on a not-so-busy street with a streetcar is pretty good interval training. If you’re polite and you abide by the rules that you stop when the streetcar doors open, you’re probably going to be stopping a bit for people to dis/embark. When the street is empty of cars, the TTC can get moving at a pretty good clip, which is generally faster than my clip. So you take off faster than transit, but they end up passing you… just to stop at the next corner to pick people up. This means you have to stop to, because you’re a proper cyclist, right?&lt;/p&gt;
+
+&lt;p&gt;What ends up happening is good interval training. My bike currently has gears on it, but I never use them. I have my sights set on a fixed-gear bike, or fixie if you will. For a while, I’ve been behaving as if my bike only has one gear, so the legs really get going when doing battle with transit.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 12 Jun 2014 00:00:00 -0400</pubDate>
+        <link>http://www.usetheschwartz.com/2014/06/12/realizations-while-biking.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/06/12/realizations-while-biking.html</guid>
+        
+        <category>Biking,</category>
+        
+        <category>Thoughts</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>The Moment of Disappointment</title>
+        <description>&lt;p&gt;Recently, I ran into some problems with the transporter starting. It was during the minus-too-much weather of the winter we just had when the problem started. At first, I thought it was just because it was too cold and the car figuratively rolled over and pulled the blanket up and told me to “sod off”. This only happened a couple times, again when it was really cold out, so I figured that it was just the age of the battery starting to show it’s wear.&lt;/p&gt;
+
+&lt;p&gt;Winter was winding down (took it’s time didn’t it?) and I started to experience the non-start again. It quickly got to the point where the battery as not holding a charge at all. You could drive the car from one end of the city to the other and as soon as you turned it off, it would not start up again.&lt;/p&gt;
+
+&lt;h4 id=&quot;time-to-admit-it&quot;&gt;Time to admit it…&lt;/h4&gt;
+
+&lt;p&gt;The car is eight years old, I’ve had it for seven of those years and I’ve never changed the battery. I think it was time. There was a bit of hoopla in getting a new power cell, but in the end, the new one was in my hands and it was ready to be installed into the chariot. Queue darkness… The daylight was gone, but the car needed to start in the morning. So I’m outside, trying to hold up the floor board to the trunk (the battery lives below) with one hand, while gripping my flashlight-enabled phone with my teeth… through my lips… and trying to loosen &lt;strong&gt;really&lt;/strong&gt; tight bolts; designed to keep the battery from moving. In retrospect, I should have just removed the floor board so I could have had two hands to work with, but I’m lazy.&lt;/p&gt;
+
+&lt;p&gt;After everything is done, the car starts. Amazing. My worries are behind me, the new battery is in and there is nothing to worry about.&lt;/p&gt;
+
+&lt;h4 id=&quot;queue-a-month-later&quot;&gt;Queue a month later…&lt;/h4&gt;
+
+&lt;p&gt;This morning Hadley and I were getting ready to leave. It’s already challenging enough to get her out of the door. There are just so many things along the way that are way cooler than going to school. We finally get seated, her in her “super safe seat”, me in the passenger chair (just checking, you still with me?). Key goes into the ignition like the million other times it has AND… it doesn’t turn over.&lt;/p&gt;
+
+&lt;p&gt;Ughh.&lt;/p&gt;
+
+&lt;p&gt;It can’t be the battery. It’s so new. How could the original one last &lt;strong&gt;eight&lt;/strong&gt; years, and this one only a month? I realize that it has some shelf life in the store, but ca’man! The only difference here, is that the car sounds different and is behaving slightly different too. It certainly tries to turn over, it’s just not making it all the way. But after the burst of energy, it’s like the connection is disappearing then reappearing immediately after.&lt;/p&gt;
+
+&lt;p&gt;It can’t be installation error: there are two poles to connect. Now, the terminals might not be as tightly squeezed as they were from the factory, but they’re not loose (I checked). I still don’t know what the issue is. My vehicle has a nice feature that it will turn off any interior light that is left on for too long, I’m not sure what the timeout is. This is of course to prevent a dead battery in the morning when you really need to get to work and are expecting the car to start, right?&lt;/p&gt;
+
+&lt;p&gt;But that moment, right after you realize that the car did not start when it’s supposed to. And you look in the back seat and your daughter is sitting in her chair, stoked to get going. And your coffee is waiting to be consumed while you drive to work. And then you realize you have some decision to make. That moment!&lt;/p&gt;
+</description>
+        <pubDate>Wed, 04 Jun 2014 00:00:00 -0400</pubDate>
+        <link>http://www.usetheschwartz.com/2014/06/04/the-moment-of-disappointment.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/06/04/the-moment-of-disappointment.html</guid>
+        
+        <category>Car,</category>
+        
+        <category>Disappointment,</category>
+        
+        <category>Pain</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Potential Inadvertent Agreements</title>
+        <description>&lt;p&gt;Lately, Hadley and I have been going on bike rides. We have a Chariot that we hook up to the bike and she can hang out in the trailer and easily look around and play with whatever she’s got in there with her. The overwhelming consensus is that she’s really into bike rides. When doing a status check at a red light, she responded with “I love it!”. Her hair flowing in the wind is something that is very obviously a plus for her… The window down in the car while driving gives her the same experience.&lt;/p&gt;
+
+&lt;p&gt;It’s an emotional roller coaster though, that always ends on a low… Hadley never wants to go home. After heading out into the surrounding neighbourhood from the house a pretty good distance, I was informed that she was getting tired, so we started to head back home. When we were getting close to the “home stretch”, I let her know that we would be home soon and she was super bummed. I asked her what was wrong and she started to cry and told me “I don’t want to go home”. The solution to this was, of course, more biking.&lt;/p&gt;
+
+&lt;p&gt;What I’ve discovered while we’re biking around however, is that I might eventually agree to something I’m not aware of. Hadley isn’t the loudest kid on the block. When she’s in the Chariot behind me and we’re travelling, she talks to me and asks questions. Sometimes though, I can’t hear her over the road noise. My usual tactic when I don’t understand her: like any parent, ask her again. If I’m still unsure after a couple more attempts, I’ll make a game-time decision and respond with something fitting, given what I was able to figure out from her question. A lot of the time though, this response is “OK”. My reasoning, is that I don’t want to give her a “because” answer. I try to satisfy her query with something that is definitive. I don’t want to answer her with something that she doesn’t get a valid reasoning with.&lt;/p&gt;
+
+&lt;p&gt;The problem here is, she’s starting to put more thoughts together and making more connections between things. She’s asking more bizarre questions and remembering more pieces of converations… she’s growing up! With this new state of affairs, compounded with the I-can’t-hear/understand-what-you’re-asking plus my need to give her a non-“because” answer equals a potential for me to agree to getting her a pet hippo for her birthday because her best friend and a dream and was riding a girrafe. I’d like to think that when this realization comes to the dinner table, I’d be able to talk my way out of it, but then there’s a whole explanation of &lt;strong&gt;why&lt;/strong&gt; we can’t get a pet hippo.&lt;/p&gt;
+
+&lt;p&gt;Now, I could of course pull over to the side of the road, get off the bike and determine what Hadley is asking for, but who wants to do that. You’re out on the bike, riding around, not travelling 300 feet and pulling over (rinse, repeat…). My hope however, is two-fold: She doesn’t ask for ridiculous things that I can’t deliver on; and that she’ll simply get louder. She does indeed have a set of lungs on her, when she’s REAL upset about things, she can pipe up. It’s the middle ground we’ll have to work on, then the discern between outside and inside voices will be the next battle.&lt;/p&gt;
+</description>
+        <pubDate>Mon, 02 Jun 2014 00:00:00 -0400</pubDate>
+        <link>http://www.usetheschwartz.com/2014/06/02/potential-inadvertent-agreements.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/06/02/potential-inadvertent-agreements.html</guid>
+        
+        <category>Bike</category>
+        
+        <category>Rides,</category>
+        
+        <category>Hadley,</category>
+        
+        <category>Neighbourhood</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>Man, Do I Dislike Gentoo</title>
+        <description>&lt;p&gt;I’ve had a little bit of experience with Gentoo in my past, and recent. In the past, I didn’t possess the “System Administrator” skills I have now. I put “System Administrator” in quotes, because I wouldn’t call myself that to any actual System Administrator. I know enough and have a few tricks up my sleve to fairly quickly get me through my day. I digress… When I was dealing with this &lt;em&gt;lovely&lt;/em&gt; operating system when I wasn’t so long in the tooth, I wasn’t doing too much. So I didn’t realize how painful it was.&lt;/p&gt;
+
+&lt;p&gt;I’ve been running into an issue with it in the past few days that is making my thoughts boil. I’m trying to migrate an old application, that is using CodeIgniter as it’s framework. For anyone in the know, this is a PHP 5.2 problem. Anything above 5.2, you’re going to have a bad time. By migrate, I mean moving from one machine to another. I’m not migrating from 5.2 to 5.4.&lt;/p&gt;
+
+&lt;p&gt;Package management is generally meant to make your life easier when it comes to dependencies and installing software on a command-line based operating system. The main take-away from this adventure is:&lt;/p&gt;
+
+&lt;h4 id=&quot;emerge-is-my-bane&quot;&gt;&lt;code&gt;emerge&lt;/code&gt; is my bane.&lt;/h4&gt;
+
+&lt;p&gt;I swear it was close to a half hour to install Apache and PHP together in one fell swoop. The screen looked like a computer does in an episode of CSI: New York when the “hacker” is trying to break into the Gibson. Just FILLED with text scrolling by, varying by only the last 30-ish characters while the four lines above it were identical to the command previously spit out by &lt;code&gt;make&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Anyway, I don’t have any clever anecdote or Chuck Palahniuk way of bringing the story around from the beginning, I just wanted to share the disdane with (hopefully) you. You’re welcome.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 29 May 2014 10:19:40 -0400</pubDate>
+        <link>http://www.usetheschwartz.com/2014/05/29/man-do-i-dislike-gentoo.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/05/29/man-do-i-dislike-gentoo.html</guid>
+        
+        <category>Geek,</category>
+        
+        <category>OS,</category>
+        
+        <category>Pure</category>
+        
+        <category>Pain,</category>
+        
+        <category>PHP</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>The Difference Fourty Minutes Make</title>
+        <description>&lt;p&gt;This morning I was behind my Mario-Kart-ghost-self while getting The Daughter ready for school (daycare) and myself ready for work. Recently, I’ve been driving to work a lot, The Love of My Life’s license has expired and she hasn’t had the time to renew it just now, exams and studying for exams have commandeered all of her time. Because of that, the car is readily available for me to use on the regular.&lt;/p&gt;
+
+&lt;p&gt;Today, I had a couple errands to do before heading in to work. First and foremost, I had to bring Hadley to school. After that, the bank needed to be visited to relieve my pocket of a chunk of money. Before being able to leave for work, the transporter needed to be refuled. All of these things are very close in proximity to each other, as well as my house. The petrol on the other hand was a dire need. My favourite orange fuel pump light was on the whole way home from work last night, which means the pointer was burried below the fill-up-your-car-now marker on the guage. Fear of being stuck in the middle of my tasks, with no fuel and the thought of having to push the car around, was less than appealing. So Hadley and I walked to school, I walked to the bank and the only thing the car needed to do, was make it to the gas station.&lt;/p&gt;
+
+&lt;p&gt;By the time the fuel guage was happy (ish…), it was almost 9:00am. I try to be in the office by 9:00am and at this point, I hadn’t started my gridlock battle yet. My place of employment is kind enough to have “flex hours”, which means you can show up anywhere between 8:00am and 10:00am, so long as you’re in the office for eight hours. So it’s not really an issue of being late, but I’d rather be in around 9:00am none-the-less. Things were not looking so awesome as anyone who drives A) in the city of Toronto; B) on the Gardiner anywhere near downtown; knows… it’s an arduous task.&lt;/p&gt;
+
+&lt;h4 id=&quot;to-my-surprise&quot;&gt;To my surprise!&lt;/h4&gt;
+
+&lt;p&gt;It was smooth sailing, the whole way in. The TL;DR is that I made it to my desk in roughly 25 minutes. But the amazement to me, was that the Gardiner &lt;strong&gt;and&lt;/strong&gt; the Lakeshore were both moving at a reasonable clip. Since the construction started on the Gardiner, it’s been kind of annoying. It really starts to get bogged down just at the point where I’m departing the roadway (Spadina). But lately, there’s been construction on the Lakeshore between my highway exit and office entrance, so this has been a bummer too. But this day, there was no pain.&lt;/p&gt;
+
+&lt;p&gt;I guess what I realized, is that if you’re travelling on the thoroughfares &lt;strong&gt;after&lt;/strong&gt; the time that everyone is rushing to work, there aren’t any bottlenecks. It makes sense really, I’ve just never paid attention to it. Perhaps I should, on purpose, leave my house closer to 9:00am, knowing that I’m going to get to the office around the same time I would if I left at 8:20am.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 28 May 2014 00:00:00 -0400</pubDate>
+        <link>http://www.usetheschwartz.com/2014/05/28/the-difference-fourty-minutes-make.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/05/28/the-difference-fourty-minutes-make.html</guid>
+        
+        <category>Morning</category>
+        
+        <category>Routine,</category>
+        
+        <category>Fuel,</category>
+        
+        <category>Cars,</category>
+        
+        <category>Hassle</category>
+        
+        
+      </item>
+    
+      <item>
+        <title>UX and Where You Came From</title>
+        <description>&lt;p&gt;I was thinking the other morning about UX (User Experience for those not in the know…) and what it means. I’ve taken part in a conversation a couple of times, about how UX is more than just the experience the user has on the site you’re working on. It also includes the state of mind the user is in WHILE they’re on your site. To go further in the thought, it encompasses the user’s surroundings during their visit as well.&lt;/p&gt;
+
+&lt;h4 id=&quot;how-do-i-know-what-chair-theyre-sitting-on&quot;&gt;How do I know what chair they’re sitting on?&lt;/h4&gt;
+
+&lt;p&gt;You don’t. There is little knowledge you could have about the user’s physical surroundings.&lt;/p&gt;
+
+&lt;p&gt;Aside from you incorporating webcam usage, having the user allow you to take a photo of their surroundings, developing some recognition algorithms and parsing power to determine what books they have on their bookshelf behind them, developing the artificial intelligence required to determine how likely they are to be in a whimsical state of mind due to the fact they have The Eyre Affair (Jasper Fforde) front and centre behind them… you don’t have any idea.&lt;/p&gt;
+
+&lt;p&gt;The truth is, physical items are not going to play a part in the decisions you make about how to develop your website. They will only play a part in the user’s state of mind while they’re doing ANYthing in front of their computer.&lt;/p&gt;
+
+&lt;h4 id=&quot;so-why-think-about-it&quot;&gt;So why think about it?&lt;/h4&gt;
+
+&lt;p&gt;It was more mental conjecture, than anything. But you can get a sliver of an idea of what your users might be doing by looking at the referrers to your site. Using your web servers logs, you can examine what sites your users are on right before they come to your plot. This isn’t a guaranteed piece of evidence, as it’s up to the browser to send the header through on the new request, so don’t bank on it.&lt;/p&gt;
+
+&lt;p&gt;After doing some investigation, you can analyze the values that do come through the data. With this information, you can make some educated decisions on your design and function. One thing to keep in mind of course, is that site needs to have links inward from elsewhere to have referral information. If your user is looking at pictures of kittens on Imgur, then types in the address of your stead, you’re not going to get your referral data. It shouldn’t come as a surprise that the more inward links you have, the more Google likes you. It’s in your best interest to make some friends and get them send some traffic your way.&lt;/p&gt;
+
+&lt;h4 id=&quot;putting-it-together&quot;&gt;Putting it together.&lt;/h4&gt;
+
+&lt;p&gt;The though here, is that you can examine the referring sites and look at their design. Something about that site is enticing to your user, so why not try to incorporate that into your layout. I of course am not saying you should flat-out copy your referring site’s designs. I’m suggesting to use them as some inspiration. Find some bits that get your senses tingling and emulate, not xerox, into your flow and see what works.&lt;/p&gt;
+
+&lt;p&gt;“Great minds think alike…” pops to the front of the brain right now. If there is something that works, why not work a bit of it in, meld it into something that is original in your own design, and run with it. “… But fools seldom differ”. This part should scream at you to NOT plagiarize your inspiration. The referring sites should be nothing more than exactly that… Inspiration.&lt;/p&gt;
+
+&lt;p&gt;The idea here is that it’s another arrow in your quiver. It’s not meant to be William Tell’s arrow used to shoot the apple off some poor bastard’s head.&lt;/p&gt;
+</description>
+        <pubDate>Wed, 02 Apr 2014 00:00:00 -0400</pubDate>
+        <link>http://www.usetheschwartz.com/2014/04/02/ux-and-where-you-came-from.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/04/02/ux-and-where-you-came-from.html</guid>
+        
+        
+      </item>
+    
+      <item>
+        <title>The Squeaky Wheel DOES Get The Grease</title>
+        <description>&lt;p&gt;The office had recently put into a place a “suggestion box” in the lunch room. HR had made it clear that we should take advantage of the box and suggest things to make our lives better in the work place. I generally don’t use these types of boxes, but there was something I wanted to get in the lunch room that would make my life better…&lt;/p&gt;
+
+&lt;h4 id=&quot;instant-hot-water&quot;&gt;Instant hot water.&lt;/h4&gt;
+
+&lt;p&gt;We have a kettle in there, but people generally don’t have the decency of refilling it when they’ve used all the water and clicking the button to boil the water again before they leave. This means that I tend to get an empty kettle and have to wait while the water boils. It’s not the end of the world, I know, but it’s idle time that I don’t want to spend waiting for water to boil. Up until not that long ago, this wouldn’t have been a problem for me, but my Missus gifted me an Aero Press for Christmas this year, so I’ve been making a lot of my coffee opposed to talking the walk to Starbucks.&lt;/p&gt;
+
+&lt;p&gt;I started to periodically put “suggestions” into the suggestion box, hinting that it would be a cool idea if we could get a tap that only had hot water. I had in mind the type that sit off to the side of the sink and deplete a 60-ish cup reservoir, so no one has to wait around for a kettle to boil. This not only serves me, as there are a lot of tea drinkers in the office. I varied the type of message on the entries, one indicating that “kettles are so 2013”. The idea was to try and not be monotonous in my message&lt;/p&gt;
+
+&lt;p&gt;As I was making my coffee this morning, I noticed some people hovering around the robot coffee, looking at a new installation between the fridge and “coffee” machine. It turns out that, my repeated attempts to suggest a hot water tap have worked! HR has put into place, what looks like a water cooler, but it has two buttons on it: hot and cold. My requests have been answered. The funny part of it is, while I was looking at it, an HR delegate came into the lunch room and she mentioned that they just put it in today. So naturally, I asked if it was due to my “suggestions”… She laughed and said “was that you?”&lt;/p&gt;
+
+&lt;p&gt;I didn’t see the new addition until I had already made my Joe (and refilled the kettle, no doubt), so I haven’t had a chance to experience it yet. I’m sure there isn’t anything to be let down about, hot water is hot water. The take-away from this: don’t be annoying in your repeated attempts to get something you’d like, the very nature of repeated attempts is annoying enough.&lt;/p&gt;
+</description>
+        <pubDate>Mon, 24 Mar 2014 00:00:00 -0400</pubDate>
+        <link>http://www.usetheschwartz.com/2014/03/24/the-squeaky-wheel-does-get-the-grease.html</link>
+        <guid isPermaLink="true">http://www.usetheschwartz.com/2014/03/24/the-squeaky-wheel-does-get-the-grease.html</guid>
+        
+        
+      </item>
+    
+  </channel>
+</rss>

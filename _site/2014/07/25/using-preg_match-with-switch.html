@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Using preg_match With A switch() | Use The Schwartz</title>
+    <meta name="description" content="A useful trick to incorporate preg_match into your switch statement">
+
+    <link rel="stylesheet" href="/css/foundation.min.css" />
+    <link rel="stylesheet" href="/css/uts.css" />
+    <link rel="stylesheet" href='http://fonts.googleapis.com/css?family=Lato:300,700' type='text/css'>
+    <link rel="stylesheet" href='http://fonts.googleapis.com/css?family=Josefin+Slab:700' type='text/css'>
+    <script src="/js/vendor/modernizr.js"></script>
+</head>
+
+
+  <body>
+
+            <div role="header">
+                        <div class="row">
+                <div class="columns large-12 branding">
+                    <a href="http://www.usetheschwartz.com">Use The Schwartz</a>
+                    
+                    <div class="title">- Using preg_match With A switch()</div>
+                    
+
+                    
+                    <ul class="main-navigation">
+                        
+                        <li class="previous"><a href="/2014/07/24/fortunately.html" title="Older">Older</a></li>
+                        
+
+                        <li class="separator">/</li>
+
+                        
+                        <li class="next"><a href="/2014/12/03/easy-ssh-key-forwarding.html" title="Newer">Newer</a></li>
+                        
+                    </ul>
+
+                    
+                    <div class="date">
+                        25 Jul 2014
+                    </div>
+                    
+
+                    
+                    <div class="tags show-for-medium-up">
+                        Nerd,php,tips
+                    </div>
+                    
+
+                    
+                </div>
+            </div>
+
+        </div>
+        <div role="header-mini">
+                        <div class="row">
+                <div class="columns large-12 branding">
+                    <a href="http://www.usetheschwartz.com">Use The Schwartz</a>
+                    
+                    <div class="title">- Using preg_match With A switch()</div>
+                    
+
+                    
+                    <ul class="main-navigation">
+                        
+                        <li class="previous"><a href="/2014/07/24/fortunately.html" title="Older">Older</a></li>
+                        
+
+                        <li class="separator">/</li>
+
+                        
+                        <li class="next"><a href="/2014/12/03/easy-ssh-key-forwarding.html" title="Newer">Newer</a></li>
+                        
+                    </ul>
+
+                    
+                    <div class="date">
+                        25 Jul 2014
+                    </div>
+                    
+
+                    
+                    <div class="tags show-for-medium-up">
+                        Nerd,php,tips
+                    </div>
+                    
+
+                    
+                </div>
+            </div>
+
+        </div>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+                <div class="row">
+            <div class="columns large-12 content">
+                <h1>Using preg_match With A switch()</h1>
+                <p>Recently at work, there came a need to be able to ues a regular expression to match values being used in a switch() statement.</p>
+
+<p>The nature of the switch() was looping through an array of fields and populating a variable that would be used in a template. This is all fine for fields that are statically defined… ie: their name wouldn’t ever change and would mean the same thing always and forever. The new need came about, by requiring that information be passed through somehow and the value of the variable is altered, depending on what ‘meta’ information is contained in the name.</p>
+
+<p>To give it a bit more context for better understanding: said field was being populated with an image, but we needed to provide the dimensions to maintain the aspect ratio, while resizing the image to a supplied size. The field’s ‘meta’ then, contains the dimension to set statically (say, width) and the size of that dimension. This would mean that the other dimension (height…) would be calculated, based on the original size of the image and the defined size of the dimension.</p>
+
+<h4 id="the-setup-fields">The Setup: $fields</h4>
+<pre class="code">
+$fields = array(
+    'name',
+    'email',
+    'image_aspect_width_300',
+)
+</pre>
+
+<h4 id="implementation-switch">Implementation: switch()</h4>
+<pre class="code">
+foreach ($fields as $field) {
+    switchch ($field) {
+        case 'name':
+            $value = 'Billy Parsons';
+            break;
+        case 'email':
+            $value = 'billy@parsons.com';
+            break;
+        case (preg_match('/^image_aspect_(width|height)_(\d+)$/', $field, $dimensions) ? $field : !$field):
+            // calculate NEW dimensions based on what was populated in $dimensions from preg_match
+            break;
+    }
+}
+</pre>
+
+<h4 id="the-breakdown">The Breakdown</h4>
+<p>The basics of what is happening, is we’re using a ternary operator to put either the value of <code>$field</code> into the case, or <code>false</code>. This means that if the regular expression supplied to <code>preg_match</code> is found, the case will be comparing ‘image_aspect_width_300’ to ‘image_aspect_width_300’ and end up calculating the dimensions. If the expression does not match, ‘image_aspect_width_300’ compares to false and will not calculate the dimensions.</p>
+
+<p>We’re also supplying <code>$dimensions</code> to <code>preg_match</code>, because we have elements in parenthesis in the regular expression… we want to use these items in our calculation. This is the ‘meta’ that we’re passing through to the processing. If designers need to create a new photo size, while still maintaining the aspect ratio of the image (why wouldn’t you want to do that anyway?), they simply need to supply a new field name to the process. The only constraint, is that the field name begins with ‘photo_aspect_’ and contains either ‘width’ or ‘height’ next, followed by a number. Of course there are separators using an underscore, but that should go without saying.</p>
+
+<p>The thing to keep in mind however, is performance. This entirely depends on your implementation, so if you’re looping through tonnes of <code>$fields</code> and have oodles of <code>preg_match</code>‘es in there, you might want rethink your process. Otherwise, this can be a handy trick.</p>
+
+            </div>
+        </div>
+
+      </div>
+    </div>
+
+    
+        <div class="bottom">
+            <div class="uts">Use The Schwartz</div>
+        </div>
+
+        <script src="/js/vendor/jquery.js"></script>
+        <script src="/js/foundation.min.js"></script>
+        <!-- <script src="/js/foundation/foundation.dropdown.js"></script> -->
+        <script>
+            $(document).foundation({
+                dropdown: {
+                    active_class: 'open'
+                }
+            });
+
+$(window).scroll(function() {
+    var scroll = $(window).scrollTop();
+    var hasClass = $('body').hasClass('stuck');
+
+    if (scroll > 250 && !hasClass) {
+        $('body').addClass('stuck');
+        return;
+    }
+
+    if (scroll < 250 && hasClass) {
+        $('body').removeClass('stuck');
+        return;
+    }
+
+    // console.log(scroll);
+});
+        </script>
+
+
+  </body>
+
+</html>

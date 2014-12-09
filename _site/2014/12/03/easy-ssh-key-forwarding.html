@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Easy SSH Key Forwarding | Use The Schwartz</title>
+    <meta name="description" content="I’ve got a need to be able to ship my SSH key from my laptop onto the host that I’m connecting to. This in and of itself is not a monumental task, but it of ...">
+
+    <link rel="stylesheet" href="/css/foundation.min.css" />
+    <link rel="stylesheet" href="/css/uts.css" />
+    <link rel="stylesheet" href='http://fonts.googleapis.com/css?family=Lato:300,700' type='text/css'>
+    <link rel="stylesheet" href='http://fonts.googleapis.com/css?family=Josefin+Slab:700' type='text/css'>
+    <script src="/js/vendor/modernizr.js"></script>
+</head>
+
+
+  <body>
+
+            <div role="header">
+                        <div class="row">
+                <div class="columns large-12 branding">
+                    <a href="http://www.usetheschwartz.com">Use The Schwartz</a>
+                    
+                    <div class="title">- Easy SSH Key Forwarding</div>
+                    
+
+                    
+                    <ul class="main-navigation">
+                        
+                        <li class="previous"><a href="/2014/07/25/using-preg_match-with-switch.html" title="Older">Older</a></li>
+                        
+
+                        <li class="separator">/</li>
+
+                        
+                        <li class="next stuck">Newer</li>
+                        
+                    </ul>
+
+                    
+                    <div class="date">
+                        03 Dec 2014
+                    </div>
+                    
+
+                    
+                    <div class="tags show-for-medium-up">
+                        Nerd,SSH,Forward-Awesome
+                    </div>
+                    
+
+                    
+                </div>
+            </div>
+
+        </div>
+        <div role="header-mini">
+                        <div class="row">
+                <div class="columns large-12 branding">
+                    <a href="http://www.usetheschwartz.com">Use The Schwartz</a>
+                    
+                    <div class="title">- Easy SSH Key Forwarding</div>
+                    
+
+                    
+                    <ul class="main-navigation">
+                        
+                        <li class="previous"><a href="/2014/07/25/using-preg_match-with-switch.html" title="Older">Older</a></li>
+                        
+
+                        <li class="separator">/</li>
+
+                        
+                        <li class="next stuck">Newer</li>
+                        
+                    </ul>
+
+                    
+                    <div class="date">
+                        03 Dec 2014
+                    </div>
+                    
+
+                    
+                    <div class="tags show-for-medium-up">
+                        Nerd,SSH,Forward-Awesome
+                    </div>
+                    
+
+                    
+                </div>
+            </div>
+
+        </div>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+                <div class="row">
+            <div class="columns large-12 content">
+                <h1>Easy SSH Key Forwarding</h1>
+                <p>I’ve got a need to be able to ship my SSH key from my laptop onto the host that I’m connecting to. This in and of itself is not a monumental task, but it of course can be easy and painless.</p>
+
+<h3 id="assumption">Assumption</h3>
+
+<p>I currently work on a Macbook Pro, so these instructions are specific to that machine. However, this is all in the realm of general SSH config and bash profile hackery. Of course, you need to have SSH installed on your machine also, but that should be a given at this point.</p>
+
+<h3 id="the-skinny">The Skinny</h3>
+
+<p>First thing is first, we need to make sure that your SSH Forwarding Agent is turned on. By default, it’s turned off, you’re going to have to modify your <code>/etc/ssh_config</code> to enable it:</p>
+
+<pre class="code">
+#   EnableSSHKeysign no
+#   EscapeChar ~
+#   ExitOnForwardFailure no
+   ForwardAgent yes
+#   ForwardX11 no
+#   ForwardX11Timeout 1200
+#   ForwardX11Trusted no
+</pre>
+
+<p>Now, we’re going to add some helper into your <code>.profile</code> (substitute this with .bashrc or whatever get’s launched with every terminal on your machine - if you really don’t know what you’re looking for… whatever exports your $PATH).</p>
+
+<p>Here is the full content of what we’re adding, we’ll discuss below:</p>
+
+<pre class="code">
+# SSH-Agent
+agent_test=`/bin/ps -ef | /usr/bin/grep [s]sh-agent | /usr/bin/awk '{print $2}' | xargs`
+
+if [ "$agent_test" = "" ]; then
+    # there is no agent running
+    if [ -e "$HOME/agent.sh" ]; then
+        # remove the old file
+        /bin/rm -f $HOME/agent.sh
+    fi;
+    # start a new agent
+    /usr/bin/ssh-agent | /usr/bin/grep -v echo &gt;&amp;$HOME/agent.sh
+fi;
+
+test -e $HOME/agent.sh &amp;&amp; source $HOME/agent.sh
+test -e $HOME/agent.sh &amp;&amp; ssh-add ~/.ssh/id_rsa 2&gt;/dev/null
+
+alias kagent="kill -9 $SSH_AGENT_PID"
+# SSH-Agent End
+</pre>
+
+<h5 id="the-test">The Test</h5>
+
+<pre class="code">
+agent_test=`/bin/ps -ef | /usr/bin/grep [s]sh-agent | /usr/bin/awk '{print $2}' | xargs`
+</pre>
+
+<p>This is checking to see if the ssh-agent is already running. We do this because we don’t want to start an agent with every terminal you open up. This would make problems for already open sessions. We’re simply looking at the running processes, grep’ing for ssh-agent (wrapping []’s around the first letter of the pattern will keep the instance of grep out of the results). We’ll use the value of $agent_test below to determine if we should start a new agent, or use an existing one.</p>
+
+<h5 id="some-cleanup">Some Cleanup</h5>
+
+<pre class="code">
+if [ -e "$HOME/agent.sh" ]; then
+    # remove the old file
+    /bin/rm -f $HOME/agent.sh
+fi;
+</pre>
+
+<p>Check to see if there is an existing <code>agent.sh</code> in your $HOME directory. The contents of this file come from the step after, but the spoiler, is that ssh-agent spits out some environment variables that you need to export to make the magic happen. We forward the output (from when we actually start the agent) into this file, so that any new terminal can use those variables… re-using the agent and any keys loaded into it. Remember, we’re in this block if the $agent_test value is empty, which means that there isn’t currently an agent running, we want to clean up any environment variables from a previous agent, they’re useless to us right now.</p>
+
+<h5 id="start-a-new-agent">Start A New Agent</h5>
+
+<pre class="code">
+/usr/bin/ssh-agent | /usr/bin/grep -v echo &gt;&amp;$HOME/agent.sh
+</pre>
+
+<p>Start a new SSH Agent. The output of the command is forwareded into the previously mentioned <code>agent.sh</code> for re-use. The output looks like:</p>
+
+<pre class="code">
+# ssh-agent
+SSH_AUTH_SOCK=/var/folders/1r/q94mt1gn1cjgpgkbwbdnrfbr0000gp/T//ssh-5zhpoq6QqJQj/agent.79033; export SSH_AUTH_SOCK;
+SSH_AGENT_PID=79034; export SSH_AGENT_PID;
+echo Agent pid 79034;
+</pre>
+
+<p>We grep out the last line, beacuse it’s garbage for what we’re doing. Now you have your SSH Agent running, with forwarding enabled in the config. The next line is what makes all of this re-usable between terminals:</p>
+
+<pre class="code">
+test -e $HOME/agent.sh &amp;&amp; source $HOME/agent.sh
+</pre>
+
+<p>We check to see if the <code>agent.sh</code> file exists, and if it does, we source it. This will re-use the currently running SSH Agent’s pid.</p>
+
+<h5 id="adding-keys">Adding Keys</h5>
+
+<p>The last thing we want to do is add your key to the agent automatically. This will put in your default key always, if you have other keys on your machine, you’ll either modify your <code>.profile</code> to include those as well, or add them ad hoc as you see fit.</p>
+
+<pre class="code">
+test -e $HOME/agent.sh &amp;&amp; ssh-add ~/.ssh/id_rsa 2&gt;/dev/null
+</pre>
+
+<p>Again, we check for the existence of <code>agent.sh</code> before we add the key, no point in doing it if the agent isn’t running. We’re piping errors to <code>/dev/null</code> because the output from <code>ssh-add</code> is on STDERR. All it’s telling us is that the key was added. </p>
+
+<p>You can always see what has been added in by running <code>ssh-add -l</code> (for list…).</p>
+
+<h5 id="utility">Utility</h5>
+
+<pre class="code">
+alias kagent="kill -9 $SSH_AGENT_PID"
+</pre>
+
+<p>All this does is make an easy alias to kill the agent that is running. The <code>$SSH_AGENT_PID</code> is available when the agent is started the first time, and subsequently when <code>agent.sh</code> is sourced… so it’s always available.</p>
+
+<h3 id="the-end">The End</h3>
+
+<p>After all this, each time you open up a terminal on your machine, an ssh agent will either be started or resumed and your default key will be added. Any host you connect to will now receive your key and all you did was <code>cmd-t</code> (right?).</p>
+
+            </div>
+        </div>
+
+      </div>
+    </div>
+
+    
+        <div class="bottom">
+            <div class="uts">Use The Schwartz</div>
+        </div>
+
+        <script src="/js/vendor/jquery.js"></script>
+        <script src="/js/foundation.min.js"></script>
+        <!-- <script src="/js/foundation/foundation.dropdown.js"></script> -->
+        <script>
+            $(document).foundation({
+                dropdown: {
+                    active_class: 'open'
+                }
+            });
+
+$(window).scroll(function() {
+    var scroll = $(window).scrollTop();
+    var hasClass = $('body').hasClass('stuck');
+
+    if (scroll > 250 && !hasClass) {
+        $('body').addClass('stuck');
+        return;
+    }
+
+    if (scroll < 250 && hasClass) {
+        $('body').removeClass('stuck');
+        return;
+    }
+
+    // console.log(scroll);
+});
+        </script>
+
+
+  </body>
+
+</html>

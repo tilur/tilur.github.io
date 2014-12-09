@@ -1,0 +1,9 @@
+# Site settings
+title:       Use The Schwartz
+email:       your-email@domain.com
+description: Never underestimate the power of the Schwartz!
+baseurl:     "" # the subpath of your site, e.g. /blog/
+url:         "http://www.usetheschwartz.com" # the base hostname & protocol for your site
+
+# Build settings
+markdown:    kramdown
