@@ -73,7 +73,6 @@ div[role*="header"] {
     .branding {
         font: normal 700 3.125rem $font-branding;
         /* 1px */
-        border-bottom: solid .0625rem $color-catskill;
         overflow: hidden;
         color: $color-abbey;
 
@@ -85,6 +84,9 @@ div[role*="header"] {
                 color: $color-lima;
             }
         }
+    }
+    .post & .branding {
+        border-bottom: solid .0625rem $color-catskill;
     }
 
     .tags {
@@ -114,7 +116,9 @@ div[role="header-mini"] {
     z-index: 100;
     /* 20px */
     padding-bottom: 1.25rem;
-    background: $color-white;
+    background-image: -webkit-linear-gradient(white 80%, transparent);
+    background-image: -o-linear-gradient(white 80%, transparent);
+    background-image: linear-gradient(white 80%, transparent);
     transition: $transition-default;
 
     .branding {
@@ -199,7 +203,6 @@ div[role="header"] {
     h4 {
         /* 25px */
         line-height: 1.5625rem;
-        border-bottom: solid 1px $color-catskill;
 
         a {
             transition: $transition-default;
