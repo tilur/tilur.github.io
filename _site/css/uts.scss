@@ -116,9 +116,12 @@ div[role="header-mini"] {
     z-index: 100;
     /* 20px */
     padding-bottom: 1.25rem;
-    background-image: -webkit-linear-gradient(white 80%, transparent);
-    background-image: -o-linear-gradient(white 80%, transparent);
-    background-image: linear-gradient(white 80%, transparent);
+    background-image: -webkit-linear-gradient(white 80%, rgba(255,255,255,0));
+    background-image: -o-linear-gradient(white 80%, rgba(255,255,255,0));
+    background-image: linear-gradient(white 80%, rgba(255,255,255,0));
+    // background-image: -webkit-linear-gradient(white 80%, transparent);
+    // background-image: -o-linear-gradient(white 80%, transparent);
+    // background-image: linear-gradient(white 80%, transparent);
     transition: $transition-default;
 
     .branding {
